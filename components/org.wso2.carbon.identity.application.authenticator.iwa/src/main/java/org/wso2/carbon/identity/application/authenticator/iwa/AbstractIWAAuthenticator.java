@@ -21,8 +21,11 @@ package org.wso2.carbon.identity.application.authenticator.iwa;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
+import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.io.IOException;
@@ -32,12 +35,28 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 /**
- * Abstract Class to handle common functionality of IWALocalAuthenticator and IWAFederatedAuthenticator
+ * Abstract Class to handle common functionality of IWALocalAuthenticator and IWAFederatedAuthenticator.
  */
 public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthenticator {
 
     private static final long serialVersionUID = -713445365980141169L;
     private static final Log log = LogFactory.getLog(AbstractIWAAuthenticator.class);
+
+    @Override
+    public AuthenticatorFlowStatus process(HttpServletRequest request,
+                                           HttpServletResponse response, AuthenticationContext context)
+            throws AuthenticationFailedException, LogoutFailedException {
+
+        if (Boolean.TRUE.equals(request.getAttribute("iwa-handled"))) {
+            request.setAttribute(FrameworkConstants.REQ_ATTR_HANDLED, true);
+        }
+        try {
+            return super.process(request, response, context);
+        } finally {
+            request.setAttribute(FrameworkConstants.REQ_ATTR_HANDLED, false);
+            request.setAttribute("iwa-handled", true);
+        }
+    }
 
     @Override
     protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response,
@@ -67,7 +86,7 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
     }
 
     /**
-     * Redirect to the IWA servlet with the authentication context information
+     * Redirect to the IWA servlet with the authentication context information.
      *
      * @param request
      * @param response
